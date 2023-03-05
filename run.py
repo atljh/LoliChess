@@ -7,6 +7,16 @@ from PIL import Image, ImageTk, ImageDraw, ImageFont
 
 frame_path = 'LoliChess/temp/.frame.png'
 
+def update(side)
+    sc_take()
+    frame = cv2.imread(frame_path)
+    answer = screen2fen.main(frame, side)
+    canvas = image.copy()
+    draw_text(canvas, answer)
+    tk_image = ImageTk.PhotoImage(canvas)
+    label.configure(image=tk_image)
+    label.image = tk_image
+
 def sc_take():    
     subprocess.run(['gnome-screenshot', '-f', f'{frame_path}'])
 
@@ -37,28 +47,10 @@ button1.pack()
 
 # Функция обработки нажатия кнопки
 def white():
-    sc_take()
-    frame = cv2.imread(frame_path)
-    answer = screen2fen.main(frame, ' w')
-
-    canvas = image.copy()
-    draw_text(canvas, answer)
-    tk_image = ImageTk.PhotoImage(canvas)
-    
-    label.configure(image=tk_image)
-    label.image = tk_image
+    update(' w')
 
 def black():
-    sc_take()
-    frame = cv2.imread(frame_path)
-    answer = screen2fen.main(frame, ' b')
-
-    canvas = image.copy()
-    draw_text(canvas, answer)
-    tk_image = ImageTk.PhotoImage(canvas)
-    
-    label.configure(image=tk_image)
-    label.image = tk_image
+    uodate(' b')
 
 # Привязка обработчика к кнопке
 button.config(command=white)
