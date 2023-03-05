@@ -3,7 +3,13 @@ import cv2
 import numpy as np
 import tensorflow as tf
 from stockfish import Stockfish
+import subprocess
+import pyautogui
+import time
 
+
+stockfish = Stockfish('/home/user/Music/stockfish_15.1_linux_x64/stockfish-ubuntu-20.04-x86-64')
+model = tf.keras.models.load_model('/home/user/chess_detector.h5')
 
 # просмотр картинки 
 def show(cap, img, time=1000):
@@ -68,7 +74,7 @@ def board2cells(board):
             
 
 # структурировать ответы нейронки в FEN код
-def pred2FEN(model_answer, figures_names) -> str:
+def pred2FEN(model_answer, figures_names, colour) -> str:
     fen = ""
     tmp = 0
     for i, a in enumerate(model_answer):      
@@ -91,11 +97,13 @@ def pred2FEN(model_answer, figures_names) -> str:
                 tmp = 0
             else:
                 fen += symbol
-    return fen[0:-1] +" b" 
+    fen = fen[0:-1]
+    fen += f' {colour} KQkq - 0 1'
+    return fen
 
 
 # Загрузка изображения
-def main(img):
+def main(img, colour, last_fen):
 
     #img = cv2.imread(f'{screnshots_folder}/{screenshots[-1]}')
     h, w, _ = img.shape
@@ -117,16 +125,46 @@ def main(img):
         return "Board not found..."
     
     # модель нейронки
-    model = tf.keras.models.load_model('Chess/chess_detector.h5')
 
     images64 = np.array(board2cells(board))
     preditctions = model.predict(images64)
-    FEN = pred2FEN(preditctions, figures_names)
+    FEN = pred2FEN(preditctions, figures_names, colour)
 
-    stockfish = Stockfish('/usr/bin/stockfish')
-    #stockfish.is_fen_valid(fen):
+    # print(stockfish.is_fen_valid(FEN))
     stockfish.set_fen_position(FEN)
-    best_move = stockfish.get_best_move()
-    del stockfish 
-    print(FEN)
-    return best_move
+    try:
+        best_move = stockfish.get_best_move()
+        visual = stockfish.get_board_visual()
+    except Exception as e:
+        ...
+    if last_fen == FEN:
+        print(best_move)    
+        return FEN
+    print(best_move)    
+    print(visual)
+    # print(FEN)
+    last_fen = FEN
+    return last_fen
+
+
+
+
+def start():
+    colour = input()
+    if colour not in ['w', 'b']:
+        print('w - for white, b - for black')
+        return
+    name = '.frame.png'
+    LAST_FEN = None
+    while True:
+        # subprocess.run(['gnome-screenshot','--display=:0', '-f', f'{name}'])
+        image = pyautogui.screenshot()
+        image.save('.frame.png')
+        frame = cv2.imread(name)
+        frame = np.array(frame)
+        last_fen = main(frame, colour, LAST_FEN)
+        time.sleep(3)
+        LAST_FEN = last_fen
+
+
+start()
