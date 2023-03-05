@@ -1,4 +1,3 @@
-import os
 import cv2
 import numpy as np
 import tensorflow as tf
@@ -68,7 +67,7 @@ def board2cells(board):
             
 
 # структурировать ответы нейронки в FEN код
-def pred2FEN(model_answer, figures_names) -> str:
+def pred2FEN(model_answer, figures_names, side) -> str:
     fen = ""
     tmp = 0
     for i, a in enumerate(model_answer):      
@@ -91,11 +90,17 @@ def pred2FEN(model_answer, figures_names) -> str:
                 tmp = 0
             else:
                 fen += symbol
-    return fen[0:-1] +" b" 
+    fen = fen[0:-1]
+    if side == ' w':
+        return fen + side
+    elif side == ' b':
+        roster = fen.split('/')
+        return '/'.join(roster[8::-1]) + side
+        
 
 
 # Загрузка изображения
-def main(img):
+def main(img, side):
 
     #img = cv2.imread(f'{screnshots_folder}/{screenshots[-1]}')
     h, w, _ = img.shape
@@ -121,7 +126,7 @@ def main(img):
 
     images64 = np.array(board2cells(board))
     preditctions = model.predict(images64)
-    FEN = pred2FEN(preditctions, figures_names)
+    FEN = pred2FEN(preditctions, figures_names, side)
 
     stockfish = Stockfish('/usr/bin/stockfish')
     #stockfish.is_fen_valid(fen):
