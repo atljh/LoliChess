@@ -1,14 +1,9 @@
+import os
 import cv2
 import numpy as np
 import tensorflow as tf
 from stockfish import Stockfish
 
-
-# просмотр картинки 
-def show(cap, img, time=1000):
-    cv2.namedWindow(cap, cv2.WINDOW_NORMAL)
-    cv2.imshow(cap, img)
-    cv2.waitKey(time)
 
 # обрезка под размеры доски
 def cut_to_size_board(img, cnts, img_sqr):
@@ -94,10 +89,7 @@ def pred2FEN(model_answer, figures_names, side) -> str:
     if side == ' w':
         return fen + side
     elif side == ' b':
-        roster = fen.split('/')
-        return '/'.join(roster[8::-1]) + side
-        
-
+        return fen[::-1] + side
 
 # Загрузка изображения
 def main(img, side):
@@ -129,9 +121,8 @@ def main(img, side):
     FEN = pred2FEN(preditctions, figures_names, side)
 
     stockfish = Stockfish('/usr/bin/stockfish')
-    #stockfish.is_fen_valid(fen):
+    print(FEN)
     stockfish.set_fen_position(FEN)
     best_move = stockfish.get_best_move()
     del stockfish 
-    print(FEN)
     return best_move
