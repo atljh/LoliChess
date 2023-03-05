@@ -7,13 +7,15 @@ from PIL import Image, ImageTk, ImageDraw, ImageFont
 
 frame_path = 'LoliChess/temp/.frame.png'
 
-def update(side)
+def update(side):
     sc_take()
     frame = cv2.imread(frame_path)
     answer = screen2fen.main(frame, side)
+
     canvas = image.copy()
     draw_text(canvas, answer)
     tk_image = ImageTk.PhotoImage(canvas)
+    
     label.configure(image=tk_image)
     label.image = tk_image
 
@@ -50,7 +52,7 @@ def white():
     update(' w')
 
 def black():
-    uodate(' b')
+    update(' b')
 
 # Привязка обработчика к кнопке
 button.config(command=white)
