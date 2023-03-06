@@ -1,4 +1,4 @@
-Chess Board Image Recognition and Move Prediction
+<h1>Chess Board Image Recognition and Move Prediction</h1>
 
 This project uses computer vision techniques and a trained neural network to recognize the chessboard in a given image, predict the positions of the chess pieces, and then use the Stockfish chess engine to suggest the best move for the next player.
 Requirements
@@ -16,8 +16,8 @@ Installation
 
     bash
 
-$ git clone https://github.com/<username>/<repository-name>.git
-$ cd <repository-name>
+$ git clone https://github.com/atljh/LoliChess.git
+$ cd LoliChess
 
 Install the required dependencies:
 
