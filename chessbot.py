@@ -9,8 +9,8 @@ import subprocess
 import time
 
 
-STOCKFISH_PATH = '/home/donbuasson/Music/LoliChess/stockfish_15.1_linux_x64/stockfish-ubuntu-20.04-x86-64'
-MODEL_PATH = '/home/donbuasson/Music/LoliChess/chess_detector.h5'
+STOCKFISH_PATH = '/home/user/LoliChess/stockfish_15.1_linux_x64/stockfish-ubuntu-20.04-x86-64'
+MODEL_PATH = '/home/user/LoliChess/chess_detector.h5'
 
 # Load model and stockfish engine
 model = tf.keras.models.load_model(MODEL_PATH)
@@ -30,13 +30,6 @@ def cut_to_size_board(img, cnts, img_sqr):
             cropped_img = img[y+1:y+h-1, x+1:x+w-1]
             return cropped_img
     raise ValueError('Board not found')
-
-
-def show_contours(img, cnts):
-    """Draw contours on the image."""
-    for cnt in cnts:
-        cv2.drawContours(img, [cnt], 0, (0, 255, 0), 2)
-    return img
 
 
 def is_board(cnt, img_sqr):
@@ -177,7 +170,7 @@ def get_best_move(img, last_fen, next_move):
     except Exception as e:
         print('Board not found')
         sys.exit(0)
-            
+
     images64 = np.array(board_to_cells(board))
     preditctions = model.predict(images64, verbose=0)
     FEN = generate_fen(preditctions, figures_names, next_move)
