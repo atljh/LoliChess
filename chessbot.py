@@ -93,7 +93,7 @@ def generate_fen(model_answer, next_move) -> str:
     fen = fen[0:-1]
     # fen = fen[::-1]
     col = 'w' if next_move else 'b'
-    print(colour)
+    # print(color)
     fen += f' {col} KQkq - 0 1'
     return fen
 
@@ -117,7 +117,7 @@ def get_best_move(img, last_fen, next_move):
     predictions = model.predict(images64, verbose=0)
     
     fen_notation = generate_fen(predictions, next_move)
-    print(fen_notation)
+    # print(fen_notation)
     # fen_notation = 'r1bqkbnr/ppp1pppp/2n5/8/2Q5/5N2/PP1PPPPP/RNB1KB1R w KQkq - 0 1'
 
     if not stockfish.is_fen_valid(fen_notation):
@@ -134,20 +134,20 @@ def get_best_move(img, last_fen, next_move):
         return fen_notation, next_move
     if next_move:
         print(visual)
-        print(best_move)
+        print('Best move:', best_move)
     next_move = not next_move
     return fen_notation, next_move
 
 
 
 def main():
-    global colour
-    colour = input('Enter your colour (w, b): ')
-    if colour not in ['w', 'b']:
+    global color
+    color = input('Enter your color (w, b): ')
+    if color not in ['w', 'b']:
         print('w - for white, b - for black')
         return
     
-    if colour == 'w':
+    if color == 'w':
         NEXT_MOVE = True
     else:
         NEXT_MOVE = False
@@ -171,5 +171,5 @@ if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:
-        print('Stop')
+        print('\rStopped')
         sys.exit(130)
