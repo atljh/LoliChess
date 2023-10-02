@@ -17,6 +17,7 @@ Clone the repository:
     $ pip install -r requirements.txt
 
 Download the Stockfish chess engine from stockfishchess.org/download/ and copy the binary file to the project directory.
+Paste stockfish binary file path and recognition model path to .env file
 
 <h3>Usage</h3>
 
@@ -24,7 +25,7 @@ To run the program, execute the following command:
 
     $ python chessbot.py
 
-The program will wait for you to provide an image file path. Once the path is provided, it will recognize the chessboard, predict the positions of the pieces, and suggest the best move for the next player.
+The program will wait for you to provide an image file path. Once the path is provided, it will recognize the chessboard, predict the positions of the pieces, and suggest the best move.
 
 
 ![Screenshot](Example.png)
