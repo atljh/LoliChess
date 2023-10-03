@@ -91,7 +91,6 @@ def generate_fen(model_answer, next_move, color):
     if color == 'b':
         fen = fen[::-1]
     col = 'w' if next_move else 'b'
-    # print(color)
     fen += f' {col} KQkq - 0 1'
     return fen, col
 
@@ -114,29 +113,28 @@ def get_best_move(img, color, last_fen, next_move):
     predictions = model.predict(images64, verbose=0)
     
     fen_notation, move_color = generate_fen(predictions, next_move, color)
-    print(fen_notation)
     # print(last_fen[:-13], fen_notation[:-13], last_fen[:-13] == fen_notation[:-13])
     # fen_notation = 'r1bqkbnr/ppp1pppp/2n5/8/2Q5/5N2/PP1PPPPP/RNB1KB1R w KQkq - 0 1'
 
     if not stockfish.is_fen_valid(fen_notation):
         print(fen_notation)
-        raise ValueError("Invalid FEN notation.")
+        raise ValueError("Invalid FEN notation. Did you choose your color right?")
     
     stockfish.set_fen_position(fen_notation)
     try:
-        best_move = stockfish.get_best_move()
-        # print(best_move)
-        visual = stockfish.get_board_visual()
+        best_move = stockfish.get_best_move_time(1000)
+        if color == 'w':
+            visual = stockfish.get_board_visual()
+        else:
+            visual = stockfish.get_board_visual(False)
     except Exception as e:
         raise ValueError("Error occurred while getting the best move from Stockfish engine.") from e
-    # print(last_fen[:-13] == fen_notation[:-13])
     if last_fen[:-13] == fen_notation[:-13]:
         return fen_notation, next_move
     
     if move_color == color:
         print(visual)
         print('Best move:', best_move)
-
 
     next_move = not next_move
     return fen_notation, next_move
@@ -150,13 +148,12 @@ def main():
         return
     
     if color == 'w':
-        NEXT_MOVE = True
+        _next_move = True
     else:
-        NEXT_MOVE = False
+        _next_move = False
     name = '.frame.png'
     
-    LAST_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1'
-    # LAST_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+    _last_fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1'
     while True:
         if os.getenv('XDG_SESSION_TYPE') == 'wayland':
             subprocess.run(['gnome-screenshot', '--display=:0', '-f', f'{name}'])
@@ -165,14 +162,14 @@ def main():
             image.save(name)
         frame = cv2.imread(name)
         frame = np.array(frame)
-        last_fen, next_move = get_best_move(frame, color, LAST_FEN, NEXT_MOVE)
-        NEXT_MOVE = next_move
-        LAST_FEN = last_fen
+        last_fen, next_move = get_best_move(frame, color, _last_fen, _next_move)
+        _next_move = next_move
+        _last_fen = last_fen
 
 
 if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:
-        print(' <\nStopped')
+        print(' \nStopped')
         sys.exit(130)
