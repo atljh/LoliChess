@@ -1,14 +1,13 @@
 import os
 import sys
+from os.path import join, dirname
+
+import pyautogui
 import cv2
 import numpy as np
 import tensorflow as tf
-import os
 from stockfish import Stockfish
 import subprocess
-if os.getenv('XDG_SESSION_TYPE') not in ['wayland']:
-    import pyautogui
-from os.path import join, dirname
 from dotenv import load_dotenv
 
 
@@ -34,11 +33,10 @@ def cut_to_size_board(img, cnts, img_sqr):
         if is_b:
             cropped_img = img[y+1:y+h-1, x+1:x+w-1]
             return cropped_img
-    raise Exception('Board not found')
-
+    return []
 
 def is_board(cnt, img_sqr):
-    """Check if the contour is a chessboard."""
+    """Check if the contour is a chessboard"""
     perimeter = cv2.arcLength(cnt, True)
     approx = cv2.approxPolyDP(cnt, 0.03 * perimeter, True)
     sqr = cv2.contourArea(cnt)
@@ -62,11 +60,10 @@ def board_to_cells(board):
             img = resized_gray.reshape((50, 50, 1))
             img = img.astype('float32')
             images64.append(img)
-
     return images64
 
 
-def generate_fen(model_answer, next_move) -> str:
+def generate_fen(model_answer, next_move, color):
     figures_names = ['1', 'b', 'k', 'n', 'p', 'q', 'r', 'B', 'K', 'N', 'P', 'Q', 'R']
     fen = ""
     tmp = 0
@@ -91,14 +88,15 @@ def generate_fen(model_answer, next_move) -> str:
             else:
                 fen += symbol
     fen = fen[0:-1]
-    # fen = fen[::-1]
+    if color == 'b':
+        fen = fen[::-1]
     col = 'w' if next_move else 'b'
     # print(color)
     fen += f' {col} KQkq - 0 1'
-    return fen
+    return fen, col
 
 
-def get_best_move(img, last_fen, next_move):
+def get_best_move(img, color, last_fen, next_move):
 
     height, width, _ = img.shape
     img_sqr = height * width
@@ -107,17 +105,17 @@ def get_best_move(img, last_fen, next_move):
     thresh = cv2.threshold(gray, 120, 120, cv2.THRESH_BINARY_INV)[1]
     contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-
     board = cut_to_size_board(img, contours, img_sqr)
-    # if not board:
-        # print('Board not found')
-        # raise ValueError('Board not found')
-
+    if not len(board):
+        print('Board not found')
+        return main()
+    
     images64 = np.array(board_to_cells(board))
     predictions = model.predict(images64, verbose=0)
     
-    fen_notation = generate_fen(predictions, next_move)
-    # print(fen_notation)
+    fen_notation, move_color = generate_fen(predictions, next_move, color)
+    print(fen_notation)
+    # print(last_fen[:-13], fen_notation[:-13], last_fen[:-13] == fen_notation[:-13])
     # fen_notation = 'r1bqkbnr/ppp1pppp/2n5/8/2Q5/5N2/PP1PPPPP/RNB1KB1R w KQkq - 0 1'
 
     if not stockfish.is_fen_valid(fen_notation):
@@ -127,23 +125,27 @@ def get_best_move(img, last_fen, next_move):
     stockfish.set_fen_position(fen_notation)
     try:
         best_move = stockfish.get_best_move()
+        # print(best_move)
         visual = stockfish.get_board_visual()
     except Exception as e:
         raise ValueError("Error occurred while getting the best move from Stockfish engine.") from e
+    # print(last_fen[:-13] == fen_notation[:-13])
     if last_fen[:-13] == fen_notation[:-13]:
         return fen_notation, next_move
-    if next_move:
+    
+    if move_color == color:
         print(visual)
         print('Best move:', best_move)
+
+
     next_move = not next_move
     return fen_notation, next_move
 
 
 
 def main():
-    global color
     color = input('Enter your color (w, b): ')
-    if color not in ['w', 'b']:
+    if color.lower() not in ['w', 'b']:
         print('w - for white, b - for black')
         return
     
@@ -152,8 +154,9 @@ def main():
     else:
         NEXT_MOVE = False
     name = '.frame.png'
-    # LAST_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1'
-    LAST_FEN = ''
+    
+    LAST_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1'
+    # LAST_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
     while True:
         if os.getenv('XDG_SESSION_TYPE') == 'wayland':
             subprocess.run(['gnome-screenshot', '--display=:0', '-f', f'{name}'])
@@ -162,7 +165,7 @@ def main():
             image.save(name)
         frame = cv2.imread(name)
         frame = np.array(frame)
-        last_fen, next_move = get_best_move(frame, LAST_FEN, NEXT_MOVE)
+        last_fen, next_move = get_best_move(frame, color, LAST_FEN, NEXT_MOVE)
         NEXT_MOVE = next_move
         LAST_FEN = last_fen
 
@@ -171,5 +174,5 @@ if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:
-        print('\rStopped')
+        print(' <\nStopped')
         sys.exit(130)

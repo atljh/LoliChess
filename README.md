@@ -16,7 +16,7 @@ Clone the repository:
 
     $ pip install -r requirements.txt
 
-Download the Stockfish chess engine from stockfishchess.org/download/ and copy the binary file to the project directory.
+Download the Stockfish chess engine from <a href="https://stockfishchess.org/download/">stockfishchess.org/download/</a> and copy the binary file to the project directory.
 Paste stockfish binary file path and recognition model path to .env file
 
 <h3>Usage</h3>
