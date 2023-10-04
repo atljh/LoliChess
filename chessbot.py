@@ -114,8 +114,6 @@ def get_best_move(img: np.ndarray, color: str, last_fen: str, next_move: bool) -
     predictions = model.predict(images64, verbose=0)
     
     fen_notation, move_color = generate_fen(predictions, next_move, color)
-    # print(last_fen[:-13], fen_notation[:-13], last_fen[:-13] == fen_notation[:-13])
-    # fen_notation = 'r1bqkbnr/ppp1pppp/2n5/8/2Q5/5N2/PP1PPPPP/RNB1KB1R w KQkq - 0 1'
 
     if not stockfish.is_fen_valid(fen_notation):
         print(fen_notation)
@@ -134,7 +132,11 @@ def get_best_move(img: np.ndarray, color: str, last_fen: str, next_move: bool) -
         return fen_notation, next_move
     
     if move_color == color:
-        print(visual)
+        if os.name == 'nt':
+            os.system('cls')
+        else:
+            os.system('clear')
+        print('\n', visual)
         print('Best move:', best_move)
 
     next_move = not next_move
