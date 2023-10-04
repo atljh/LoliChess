@@ -19,8 +19,7 @@ STOCKFISH_PATH = os.environ.get('STOCKFISH_PATH')
 MODEL_PATH     = os.environ.get('MODEL_PATH')
 
 model = tf.keras.models.load_model(MODEL_PATH)
-stockfish = Stockfish(STOCKFISH_PATH)
-
+stockfish = Stockfish(STOCKFISH_PATH, depth=18, parameters={"Threads": 2, "Minimum Thinking Time": 30})
 
 def cut_to_size_board(img: np.ndarray, cnts: List[Any], img_sqr: int) -> Optional[np.ndarray]:
     """Crop the image to the size of the chessboard."""
@@ -138,7 +137,9 @@ def get_best_move(img: np.ndarray, color: str, last_fen: str, next_move: bool) -
             os.system('clear')
         print('\n', visual)
         print('Best move:', best_move)
-
+        actions = stockfish.get_evaluation()
+        if actions.get('type') == 'mate':
+            print(f'Mate in {abs(actions["value"])}')
     next_move = not next_move
     return fen_notation, next_move
 
