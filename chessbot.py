@@ -1,6 +1,7 @@
 import os
 import sys
 from os.path import join, dirname
+from typing import List, Tuple, Optional, Any
 
 import pyautogui
 import cv2
@@ -21,7 +22,7 @@ model = tf.keras.models.load_model(MODEL_PATH)
 stockfish = Stockfish(STOCKFISH_PATH)
 
 
-def cut_to_size_board(img, cnts, img_sqr):
+def cut_to_size_board(img: np.ndarray, cnts: List[Any], img_sqr: int) -> Optional[np.ndarray]:
     """Crop the image to the size of the chessboard."""
     for cnt in cnts:
         answer = is_board(cnt, img_sqr)
@@ -35,7 +36,7 @@ def cut_to_size_board(img, cnts, img_sqr):
             return cropped_img
     return []
 
-def is_board(cnt, img_sqr):
+def is_board(cnt: Any, img_sqr: int) -> List[Optional[Any]]:
     """Check if the contour is a chessboard"""
     perimeter = cv2.arcLength(cnt, True)
     approx = cv2.approxPolyDP(cnt, 0.03 * perimeter, True)
@@ -48,7 +49,7 @@ def is_board(cnt, img_sqr):
     return [False]
 
 
-def board_to_cells(board):
+def board_to_cells(board: np.ndarray) -> List[np.ndarray]:
     bh,bw = board.shape[:2]
     cw, ch = bw//8, bh//8
     images64 = []
@@ -63,11 +64,11 @@ def board_to_cells(board):
     return images64
 
 
-def generate_fen(model_answer, next_move, color):
+def generate_fen(predictions: List[np.ndarray], next_move: bool, color: str) -> Tuple[str, str]:
     figures_names = ['1', 'b', 'k', 'n', 'p', 'q', 'r', 'B', 'K', 'N', 'P', 'Q', 'R']
     fen = ""
     tmp = 0
-    for i, a in enumerate(model_answer):      
+    for i, a in enumerate(predictions):      
         symbol = figures_names[np.argmax(a)]  
         if (i+1)%8 == 0:                
             if symbol == "1":
@@ -95,7 +96,7 @@ def generate_fen(model_answer, next_move, color):
     return fen, col
 
 
-def get_best_move(img, color, last_fen, next_move):
+def get_best_move(img: np.ndarray, color: str, last_fen: str, next_move: bool) -> Tuple[str, bool]:
 
     height, width, _ = img.shape
     img_sqr = height * width
@@ -141,7 +142,7 @@ def get_best_move(img, color, last_fen, next_move):
 
 
 
-def main():
+def main() -> None:
     color = input('Enter your color (w, b): ')
     if color.lower() not in ['w', 'b']:
         print('w - for white, b - for black')
@@ -153,7 +154,8 @@ def main():
         _next_move = False
     name = '.frame.png'
     
-    _last_fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1'
+    # _last_fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1'
+    _last_fen = ''
     while True:
         if os.getenv('XDG_SESSION_TYPE') == 'wayland':
             subprocess.run(['gnome-screenshot', '--display=:0', '-f', f'{name}'])
