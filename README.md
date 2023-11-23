@@ -13,10 +13,10 @@ Clone the repository:
     $ cd LoliChess
 
 <h3>Install the required dependencies:</h3>
-    If you are using Linux you will need to install the following packages:
+<h5>If you are using Linux you will need to install the following packages:</h5>
     $ dnf install gcc-c++ python3-devel
 
-    And turn on xorg for screenshots:
+<h5>And turn on xorg for screenshots:</h5>
     Open /etc/gdm/custom.conf and uncomment the line:
 
     WaylandEnable=false
