@@ -63,7 +63,7 @@ def board_to_cells(board: np.ndarray) -> List[np.ndarray]:
     return images64
 
 
-def generate_fen(predictions: List[np.ndarray], next_move: bool, color: str) -> Tuple[str, str]:
+def generate_fen(predictions: List[np.ndarray], next_move: bool, color: str, P) -> Tuple[str, str]:
     figures_names = ['1', 'b', 'k', 'n', 'p', 'q', 'r', 'B', 'K', 'N', 'P', 'Q', 'R']
     fen = ""
     tmp = 0
@@ -90,9 +90,10 @@ def generate_fen(predictions: List[np.ndarray], next_move: bool, color: str) -> 
     fen = fen[0:-1]
     if color == 'b':
         fen = fen[::-1]
-    col = 'w' if next_move else 'b'
-    fen += f' {col} KQkq - 0 1'
-    return fen, col
+    color = 'w' if next_move else 'b'
+    fen += f' {color} KQkq - 0 1'
+    print(next_move, fen)
+    return fen, color
 
 
 def get_best_move(img: np.ndarray, color: str, last_fen: str, next_move: bool) -> Tuple[str, bool]:
@@ -112,8 +113,8 @@ def get_best_move(img: np.ndarray, color: str, last_fen: str, next_move: bool) -
     images64 = np.array(board_to_cells(board))
     predictions = model.predict(images64, verbose=0)
     
-    fen_notation, move_color = generate_fen(predictions, next_move, color)
-
+    fen_notation, move_color = generate_fen(predictions, next_move, color, last_fen)
+    # print(last_fen, fen_notation, last_fen[:13] == fen_notation[:13])
     if not stockfish.is_fen_valid(fen_notation):
         print(fen_notation)
         raise ValueError("Invalid FEN notation. Did you choose your color right?")
@@ -127,25 +128,33 @@ def get_best_move(img: np.ndarray, color: str, last_fen: str, next_move: bool) -
             visual = stockfish.get_board_visual(False)
     except Exception as e:
         raise ValueError("Error occurred while getting the best move from Stockfish engine.") from e
-    if last_fen[:-13] == fen_notation[:-13]:
-        return fen_notation, next_move
     
+    if last_fen[:13] == fen_notation[:13]:
+        return fen_notation, next_move
+
     if move_color == color:
-        if os.name == 'nt':
-            os.system('cls')
-        else:
-            os.system('clear')
+        # if os.name == 'nt':
+        #     os.system('cls')
+        # else:
+        #     os.system('clear')
         print('\n', visual)
         print('Best move:', best_move)
         actions = stockfish.get_evaluation()
         if actions.get('type') == 'mate':
             print(f'Mate in {abs(actions["value"])}')
-    next_move = not next_move
+            
+    if last_fen[:13] != fen_notation[:13] and len(last_fen):
+        next_move = not next_move
     return fen_notation, next_move
 
 
 
 def main() -> None:
+    if os.name == 'nt':
+        os.system('cls')
+    else:
+        os.system('clear')
+    # print(stockfish.is_fen_valid('rnb1k1nr/ppp2ppp/3p1q2/1Bb1p3/4P3/PPN2N2/2PP1PPP/R2QK2R b KQkq - 0 1'))
     color = input('Enter your color (w, b): ')
     if color.lower() not in ['w', 'b']:
         print('w - for white, b - for black')
