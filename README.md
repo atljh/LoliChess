@@ -13,10 +13,11 @@ Clone the repository:
     $ cd LoliChess
 
 <h3>Install the required dependencies:</h3>
-<h5>If you are using Linux you will need to install the following packages:</h5>
+If you are using Linux you will need to install the following packages:
+
     $ dnf install gcc-c++ python3-devel
 
-<h5>And turn on xorg for screenshots:</h5>
+And turn on xorg for screenshots:
     Open /etc/gdm/custom.conf and uncomment the line:
 
     WaylandEnable=false
@@ -29,8 +30,13 @@ Clone the repository:
 
     Logout or reboot to enter the new session.
 
-
+Install libraries:
     
+    $ pip install -r requirements.txt
+
+
+On Windows just install libraries:
+
     $ pip install -r requirements.txt
 
 Download the Stockfish chess engine from <a href="https://stockfishchess.org/download/">stockfishchess.org/download/</a> and copy the binary file to the project directory.
