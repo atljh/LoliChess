@@ -53,4 +53,4 @@ To run the program, execute the following command:
 The program will wait for you to provide an image file path. Once the path is provided, it will recognize the chessboard, predict the positions of the pieces, and suggest the best move.
 
 
-![Screenshot](example.png)
+![Screenshot](Example.png)

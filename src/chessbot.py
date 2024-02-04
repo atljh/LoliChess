@@ -3,13 +3,14 @@ import sys
 from os.path import join, dirname
 from typing import List, Tuple, Optional, Any
 
-import pyautogui
+
 import cv2
+import pyautogui
+import subprocess
 import numpy as np
 import tensorflow as tf
-from stockfish import Stockfish
-import subprocess
-from dotenv import load_dotenv
+from   stockfish import Stockfish
+from   dotenv import load_dotenv
 
 
 dotenv_path = join(dirname(__file__), '.env')
@@ -18,8 +19,9 @@ load_dotenv(dotenv_path)
 STOCKFISH_PATH = os.environ.get('STOCKFISH_PATH')
 MODEL_PATH     = os.environ.get('MODEL_PATH')
 
-model = tf.keras.models.load_model(MODEL_PATH)
+model     = tf.keras.models.load_model(MODEL_PATH)
 stockfish = Stockfish(STOCKFISH_PATH, depth=18, parameters={"Threads": 2, "Minimum Thinking Time": 30})
+
 
 def cut_to_size_board(img: np.ndarray, cnts: List[Any], img_sqr: int) -> Optional[np.ndarray]:
     """Crop the image to the size of the chessboard."""
@@ -34,6 +36,7 @@ def cut_to_size_board(img: np.ndarray, cnts: List[Any], img_sqr: int) -> Optiona
             cropped_img = img[y+1:y+h-1, x+1:x+w-1]
             return cropped_img
     return []
+
 
 def is_board(cnt: Any, img_sqr: int) -> List[Optional[Any]]:
     """Check if the contour is a chessboard"""
@@ -92,7 +95,6 @@ def generate_fen(predictions: List[np.ndarray], next_move: bool, color: str, P) 
         fen = fen[::-1]
     color = 'w' if next_move else 'b'
     fen += f' {color} KQkq - 0 1'
-    print(next_move, fen)
     return fen, color
 
 
@@ -114,7 +116,7 @@ def get_best_move(img: np.ndarray, color: str, last_fen: str, next_move: bool) -
     predictions = model.predict(images64, verbose=0)
     
     fen_notation, move_color = generate_fen(predictions, next_move, color, last_fen)
-    # print(last_fen, fen_notation, last_fen[:13] == fen_notation[:13])
+
     if not stockfish.is_fen_valid(fen_notation):
         print(fen_notation)
         raise ValueError("Invalid FEN notation. Did you choose your color right?")
@@ -128,25 +130,32 @@ def get_best_move(img: np.ndarray, color: str, last_fen: str, next_move: bool) -
             visual = stockfish.get_board_visual(False)
     except Exception as e:
         raise ValueError("Error occurred while getting the best move from Stockfish engine.") from e
-    
-    if last_fen[:13] == fen_notation[:13]:
+    if (last_fen == fen_notation):
         return fen_notation, next_move
+    # if os.name == 'nt':
+    #     os.system('cls')
+    # else:
+    #     os.system('clear')
 
-    if move_color == color:
-        # if os.name == 'nt':
-        #     os.system('cls')
-        # else:
-        #     os.system('clear')
-        print('\n', visual)
-        print('Best move:', best_move)
-        actions = stockfish.get_evaluation()
-        if actions.get('type') == 'mate':
-            print(f'Mate in {abs(actions["value"])}')
-            
-    if last_fen[:13] != fen_notation[:13] and len(last_fen):
+    actions = stockfish.get_evaluation()
+    if actions.get('type') == 'mate':
+        print(f'Mate in {abs(actions["value"])}')
+
+    if (last_fen[:-13] != fen_notation[:-13]) and len(last_fen) > 0:
         next_move = not next_move
+        return fen_notation, next_move
+    print('\n', visual)
+    print(f'Best move for {move_color}:', best_move)
     return fen_notation, next_move
 
+
+def get_screenshot(name: str ='.frame.png') -> str:
+    if os.getenv('XDG_SESSION_TYPE') == 'wayland':
+        subprocess.run(['gnome-screenshot', '--display=:0', '-f', f'{name}'])
+    elif os.getenv('XDG_SESSION_TYPE') == 'x11':
+        image = pyautogui.screenshot()
+        image.save(name)
+    return name
 
 
 def main() -> None:
@@ -154,7 +163,7 @@ def main() -> None:
         os.system('cls')
     else:
         os.system('clear')
-    # print(stockfish.is_fen_valid('rnb1k1nr/ppp2ppp/3p1q2/1Bb1p3/4P3/PPN2N2/2PP1PPP/R2QK2R b KQkq - 0 1'))
+
     color = input('Enter your color (w, b): ')
     if color.lower() not in ['w', 'b']:
         print('w - for white, b - for black')
@@ -164,22 +173,19 @@ def main() -> None:
         _next_move = True
     else:
         _next_move = False
-    name = '.frame.png'
     
     # _last_fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1'
     _last_fen = ''
     while True:
-        if os.getenv('XDG_SESSION_TYPE') == 'wayland':
-            subprocess.run(['gnome-screenshot', '--display=:0', '-f', f'{name}'])
-        elif os.getenv('XDG_SESSION_TYPE') == 'x11':
-            image = pyautogui.screenshot()
-            image.save(name)
+        name = get_screenshot()
         frame = cv2.imread(name)
         frame = np.array(frame)
+
         last_fen, next_move = get_best_move(frame, color, _last_fen, _next_move)
         _next_move = next_move
         _last_fen = last_fen
 
+        #TODO: circular
 
 if __name__ == '__main__':
     try:
