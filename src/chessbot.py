@@ -132,10 +132,6 @@ def get_best_move(img: np.ndarray, color: str, last_fen: str, next_move: bool) -
         raise ValueError("Error occurred while getting the best move from Stockfish engine.") from e
     if (last_fen == fen_notation):
         return fen_notation, next_move
-    # if os.name == 'nt':
-    #     os.system('cls')
-    # else:
-    #     os.system('clear')
 
     actions = stockfish.get_evaluation()
     if actions.get('type') == 'mate':
@@ -144,6 +140,12 @@ def get_best_move(img: np.ndarray, color: str, last_fen: str, next_move: bool) -
     if (last_fen[:-13] != fen_notation[:-13]) and len(last_fen) > 0:
         next_move = not next_move
         return fen_notation, next_move
+    
+    if os.name == 'nt':
+        os.system('cls')
+    else:
+        os.system('clear')
+
     print('\n', visual)
     print(f'Best move for {move_color}:', best_move)
     return fen_notation, next_move
@@ -179,9 +181,9 @@ def main() -> None:
     while True:
         name = get_screenshot()
         frame = cv2.imread(name)
-        frame = np.array(frame)
+        img = np.array(frame)
 
-        last_fen, next_move = get_best_move(frame, color, _last_fen, _next_move)
+        last_fen, next_move = get_best_move(img, color, _last_fen, _next_move)
         _next_move = next_move
         _last_fen = last_fen
 
