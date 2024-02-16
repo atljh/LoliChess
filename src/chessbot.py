@@ -1,14 +1,16 @@
 import os
 import sys
 from os.path import join, dirname
+from typing import List, Tuple, Optional, Any
 
-import pyautogui
+
 import cv2
+import pyautogui
+import subprocess
 import numpy as np
 import tensorflow as tf
-from stockfish import Stockfish
-import subprocess
-from dotenv import load_dotenv
+from   stockfish import Stockfish
+from   dotenv import load_dotenv
 
 
 dotenv_path = join(dirname(__file__), '.env')
@@ -17,11 +19,11 @@ load_dotenv(dotenv_path)
 STOCKFISH_PATH = os.environ.get('STOCKFISH_PATH')
 MODEL_PATH     = os.environ.get('MODEL_PATH')
 
-model = tf.keras.models.load_model(MODEL_PATH)
-stockfish = Stockfish(STOCKFISH_PATH)
+model     = tf.keras.models.load_model(MODEL_PATH)
+stockfish = Stockfish(STOCKFISH_PATH, depth=18, parameters={"Threads": 2, "Minimum Thinking Time": 30})
 
 
-def cut_to_size_board(img, cnts, img_sqr):
+def cut_to_size_board(img: np.ndarray, cnts: List[Any], img_sqr: int) -> Optional[np.ndarray]:
     """Crop the image to the size of the chessboard."""
     for cnt in cnts:
         answer = is_board(cnt, img_sqr)
@@ -35,7 +37,8 @@ def cut_to_size_board(img, cnts, img_sqr):
             return cropped_img
     return []
 
-def is_board(cnt, img_sqr):
+
+def is_board(cnt: Any, img_sqr: int) -> List[Optional[Any]]:
     """Check if the contour is a chessboard"""
     perimeter = cv2.arcLength(cnt, True)
     approx = cv2.approxPolyDP(cnt, 0.03 * perimeter, True)
@@ -48,7 +51,7 @@ def is_board(cnt, img_sqr):
     return [False]
 
 
-def board_to_cells(board):
+def board_to_cells(board: np.ndarray) -> List[np.ndarray]:
     bh,bw = board.shape[:2]
     cw, ch = bw//8, bh//8
     images64 = []
@@ -63,11 +66,11 @@ def board_to_cells(board):
     return images64
 
 
-def generate_fen(model_answer, next_move, color):
+def generate_fen(predictions: List[np.ndarray], next_move: bool, color: str, P) -> Tuple[str, str]:
     figures_names = ['1', 'b', 'k', 'n', 'p', 'q', 'r', 'B', 'K', 'N', 'P', 'Q', 'R']
     fen = ""
     tmp = 0
-    for i, a in enumerate(model_answer):      
+    for i, a in enumerate(predictions):      
         symbol = figures_names[np.argmax(a)]  
         if (i+1)%8 == 0:                
             if symbol == "1":
@@ -90,12 +93,12 @@ def generate_fen(model_answer, next_move, color):
     fen = fen[0:-1]
     if color == 'b':
         fen = fen[::-1]
-    col = 'w' if next_move else 'b'
-    fen += f' {col} KQkq - 0 1'
-    return fen, col
+    color = 'w' if next_move else 'b'
+    fen += f' {color} KQkq - 0 1'
+    return fen, color
 
 
-def get_best_move(img, color, last_fen, next_move):
+def get_best_move(img: np.ndarray, color: str, last_fen: str, next_move: bool) -> Tuple[str, bool]:
 
     height, width, _ = img.shape
     img_sqr = height * width
@@ -112,9 +115,7 @@ def get_best_move(img, color, last_fen, next_move):
     images64 = np.array(board_to_cells(board))
     predictions = model.predict(images64, verbose=0)
     
-    fen_notation, move_color = generate_fen(predictions, next_move, color)
-    # print(last_fen[:-13], fen_notation[:-13], last_fen[:-13] == fen_notation[:-13])
-    # fen_notation = 'r1bqkbnr/ppp1pppp/2n5/8/2Q5/5N2/PP1PPPPP/RNB1KB1R w KQkq - 0 1'
+    fen_notation, move_color = generate_fen(predictions, next_move, color, last_fen)
 
     if not stockfish.is_fen_valid(fen_notation):
         print(fen_notation)
@@ -129,19 +130,42 @@ def get_best_move(img, color, last_fen, next_move):
             visual = stockfish.get_board_visual(False)
     except Exception as e:
         raise ValueError("Error occurred while getting the best move from Stockfish engine.") from e
-    if last_fen[:-13] == fen_notation[:-13]:
+    if (last_fen == fen_notation):
+        return fen_notation, next_move
+
+    actions = stockfish.get_evaluation()
+    if actions.get('type') == 'mate':
+        print(f'Mate in {abs(actions["value"])}')
+
+    if (last_fen[:-13] != fen_notation[:-13]) and len(last_fen) > 0:
+        next_move = not next_move
         return fen_notation, next_move
     
-    if move_color == color:
-        print(visual)
-        print('Best move:', best_move)
+    if os.name == 'nt':
+        os.system('cls')
+    else:
+        os.system('clear')
 
-    next_move = not next_move
+    print('\n', visual)
+    print(f'Best move for {move_color}:', best_move)
     return fen_notation, next_move
 
 
+def get_screenshot(name: str ='.frame.png') -> str:
+    if os.getenv('XDG_SESSION_TYPE') == 'wayland':
+        subprocess.run(['gnome-screenshot', '--display=:0', '-f', f'{name}'])
+    elif os.getenv('XDG_SESSION_TYPE') == 'x11':
+        image = pyautogui.screenshot()
+        image.save(name)
+    return name
 
-def main():
+
+def main() -> None:
+    if os.name == 'nt':
+        os.system('cls')
+    else:
+        os.system('clear')
+
     color = input('Enter your color (w, b): ')
     if color.lower() not in ['w', 'b']:
         print('w - for white, b - for black')
@@ -151,21 +175,19 @@ def main():
         _next_move = True
     else:
         _next_move = False
-    name = '.frame.png'
     
-    _last_fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1'
+    # _last_fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1'
+    _last_fen = ''
     while True:
-        if os.getenv('XDG_SESSION_TYPE') == 'wayland':
-            subprocess.run(['gnome-screenshot', '--display=:0', '-f', f'{name}'])
-        elif os.getenv('XDG_SESSION_TYPE') == 'x11':
-            image = pyautogui.screenshot()
-            image.save(name)
+        name = get_screenshot()
         frame = cv2.imread(name)
-        frame = np.array(frame)
-        last_fen, next_move = get_best_move(frame, color, _last_fen, _next_move)
+        img = np.array(frame)
+
+        last_fen, next_move = get_best_move(img, color, _last_fen, _next_move)
         _next_move = next_move
         _last_fen = last_fen
 
+        #TODO: circular
 
 if __name__ == '__main__':
     try:
